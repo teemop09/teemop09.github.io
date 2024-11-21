@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>CSV Table Display</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            margin: 20px auto;
+            width: 50%;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>CSV File Upload and Display</h1>
+    <input type="file" id="csvInput" accept=".csv">
+    <p>Or use the default file: <button onclick="loadDefaultCsv()">Start</button></p>
+    <div id="t1Container"></div>
+    <div id="t2Container"></div>
+
+    <script>
+        let csvInput = document.getElementById('csvInput');
+        let t1Container = document.getElementById('t1Container');
+        let t2Container = document.getElementById('t2Container');
+
+        async function loadDefaultCsv() {
+            try {
+                let res = await fetch('https://raw.githubusercontent.com/teemop09/teemop09.github.io/refs/heads/main/Table_Input.csv');
+                if (!res.ok) {
+                    throw new Error(`HTTP error ${res.status}`);
+                }
+                let csvText = await res.text();
+                processData(csvText);
+            } catch (error) {
+                alert("Could not load the default CSV file.");
+            }
+        }
+        function processData(csvText) {
+            try {
+                let data = csvToArr(csvText);
+                if (!data || data.length === 0) {
+                    throw new Error("Invalid or empty CSV data.");
+                }
+
+                t1Container.innerHTML = createTable(data);
+                t2Container.innerHTML = createTable(calcTable2(data));
+            } catch (error) {
+                alert("Could not process the CSV file.");
+                t1Container.innerHTML = "";
+                t2Container.innerHTML = "";
+            }
+        }
+        csvInput.addEventListener('change', (event) => {
+            let file = event.target.files[0];
+            let reader = new FileReader();
+
+            reader.onload = (e) => {
+                let contents = e.target.result;
+                let data = csvToArr(contents);
+
+                let t1Html = createTable(data);
+                t1Container.innerHTML = t1Html;
+                let t2Data = calcTable2(data);
+                let t2Html = createTable(t2Data);
+                t2Container.innerHTML = t2Html;
+            };
+            reader.readAsText(file);
+        });
+
+        function csvToArr(csvStr) {
+            let rows = csvStr.split('\n');
+            let headers = rows[0].split(',');
+            let data = [];
+            for (let i = 1; i < rows.length; i++) {
+                if (rows[i].trim() !== "") {
+                    let rowValues = rows[i].split(',');
+                    let row = {};
+                    for (let j = 0; j < headers.length; j++) {
+                        row[headers[j].trim()] = rowValues[j].trim();
+                    }
+                    data.push(row);
+                }
+            }
+            return data;
+        }
+
+
+        function createTable(data) {
+            if (data.length === 0) return '';
+            let headers = Object.keys(data[0]);
+            let tableHtml = '<table><thead><tr>';
+            headers.forEach(header => {
+                tableHtml += `<th>${header}</th>`;
+            });
+            tableHtml += '</tr></thead><tbody>';
+            data.forEach(row => {
+                tableHtml += '<tr>';
+                headers.forEach(header => {
+                    tableHtml += `<td>${row[header]}</td>`;
+                });
+                tableHtml += '</tr>';
+            });
+            tableHtml += '</tbody></table>';
+            return tableHtml;
+        }
+
+        function calcTable2(data) {
+            let getValue = (index) => {
+                let row = data.find(r => r['Index #'] === index);
+                let val = row ? row['Value'] : '0';
+                return parseInt(val)
+            };
+
+            let a5 = getValue('A5');
+            let a20 = getValue('A20');
+            let a15 = getValue('A15');
+            let a7 = getValue('A7');
+            let a13 = getValue('A13');
+            let a12 = getValue('A12');
+            return [
+                { 'Category': 'Alpha', 'Formula': `A5 (${a5}) + A20 (${a20}) = ${a5 + a20}` },
+                { 'Category': 'Beta', 'Formula': `A15 (${a15}) / A7 (${a7}) = ${a15 / a7}` },
+                { 'Category': 'Charlie', 'Formula': `A13 (${a13}) * A12 (${a12}) = ${a13 * a12}` },
+            ];
+        }
+    </script>
+</body>
+
+</html>
